@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote STT Client</title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 900px;
+            padding: 20px;
+            margin: auto;
+        }
+        
+        .header {
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .status {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-connected {
+            background-color: #4CAF50;
+            box-shadow: 0 0 10px #4CAF50;
+        }
+        
+        .status-disconnected {
+            background-color: #f44336;
+            box-shadow: 0 0 10px #f44336;
+        }
+        
+        .status-warning {
+            background-color: #ff9800;
+            box-shadow: 0 0 10px #ff9800;
+        }
+        
+        .text-display {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3em;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+        
+        .realtime-text {
+            color: #87CEEB;
+            opacity: 0.8;
+        }
+        
+        .full-sentence {
+            color: #FFD700;
+            font-weight: 500;
+        }
+        
+        .controls {
+            margin: 20px 0;
+        }
+        
+        .btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .btn:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .instructions {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+            backdrop-filter: blur(10px);
+        }
+        
+        .instructions h3 {
+            margin-top: 0;
+            color: #FFD700;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin: 8px 0;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            opacity: 0.7;
+            font-size: 0.9em;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .listening {
+            animation: pulse 1.5s infinite;
+        }
+        
+        .emoji {
+            font-size: 1.5em;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎤 Remote STT Client</h1>
+            <p>Speech-to-Text for SSH Remote Environments</p>
+        </div>
+        
+        <div class="status" id="statusDisplay">
+            <span class="status-indicator status-disconnected" id="statusIndicator"></span>
+            <span id="statusText">Initializing...</span>
+        </div>
+        
+        <div class="text-display" id="textDisplay">
+            <div>Ready to start speech recognition...</div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn" id="startBtn" onclick="startRecording()" disabled>
+                🎙️ Start Recording
+            </button>
+            <button class="btn" id="stopBtn" onclick="stopRecording()" disabled>
+                ⏹️ Stop Recording
+            </button>
+            <button class="btn" onclick="clearText()">
+                🗑️ Clear Text
+            </button>
+        </div>
+        
+        <div class="instructions">
+            <h3>📋 Instructions:</h3>
+            <ul>
+                <li><strong>Allow microphone access</strong> when prompted by your browser</li>
+                <li><strong>Click "Start Recording"</strong> to begin speech recognition</li>
+                <li><strong>Speak clearly</strong> - real-time transcription will appear in light blue</li>
+                <li><strong>Complete sentences</strong> will appear in gold when detected</li>
+                <li><strong>Click "Stop Recording"</strong> to pause recognition</li>
+                <li><strong>Works best with Chrome/Edge</strong> browsers</li>
+            </ul>
+        </div>
+        
+        <div class="footer">
+            <p>🌐 Connected to remote STT server via WebSocket</p>
+            <p>💡 Make sure the server is running on your SSH remote machine</p>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - Update these if your server uses different ports
+        const WEBSOCKET_URL = `ws://${window.location.hostname}:8002`;
+        
+        // Global variables
+        let socket = null;
+        let audioContext = null;
+        let mediaStream = null;
+        let processor = null;
+        let isRecording = false;
+        let fullSentences = [];
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        
+        // DOM elements
+        const statusDisplay = document.getElementById('statusDisplay');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+        const textDisplay = document.getElementById('textDisplay');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        
+        // Initialize the application
+        async function init() {
+            updateStatus('Requesting microphone access...', 'warning');
+            
+            try {
+                // Request microphone access
+                mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        sampleRate: 44100
+                    } 
+                });
+                
+                updateStatus('Microphone access granted', 'connected');
+                setupAudioContext();
+                connectWebSocket();
+                
+            } catch (error) {
+                console.error('Microphone access denied:', error);
+                updateStatus('❌ Microphone access denied. Please allow microphone access and refresh.', 'disconnected');
+                textDisplay.innerHTML = '<div style="color: #ff6b6b;">🚫 Microphone access is required for speech recognition.<br>Please allow microphone access and refresh the page.</div>';
+            }
+        }
+        
+        function setupAudioContext() {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioContext.createMediaStreamSource(mediaStream);
+            processor = audioContext.createScriptProcessor(256, 1, 1);
+            
+            source.connect(processor);
+            processor.connect(audioContext.destination);
+            
+            processor.onaudioprocess = function(e) {
+                if (!isRecording || !socket || socket.readyState !== WebSocket.OPEN) {
+                    return;
+                }
+                
+                const inputData = e.inputBuffer.getChannelData(0);
+                const outputData = new Int16Array(inputData.length);
+                
+                // Convert to 16-bit PCM
+                for (let i = 0; i < inputData.length; i++) {
+                    outputData[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32768));
+                }
+                
+                // Send audio data to server
+                sendAudioData(outputData, audioContext.sampleRate);
+            };
+        }
+        
+        function sendAudioData(audioData, sampleRate) {
+            try {
+                // Create metadata
+                const metadata = JSON.stringify({ sampleRate: sampleRate });
+                const metadataBytes = new TextEncoder().encode(metadata);
+                
+                // Create metadata length buffer (4 bytes)
+                const metadataLength = new ArrayBuffer(4);
+                const metadataLengthView = new DataView(metadataLength);
+                metadataLengthView.setInt32(0, metadataBytes.byteLength, true);
+                
+                // Combine all data
+                const combinedData = new Blob([metadataLength, metadataBytes, audioData.buffer]);
+                socket.send(combinedData);
+                
+            } catch (error) {
+                console.error('Error sending audio data:', error);
+            }
+        }
+        
+        function connectWebSocket() {
+            updateStatus('Connecting to server...', 'warning');
+            
+            socket = new WebSocket(WEBSOCKET_URL);
+            
+            socket.onopen = function(event) {
+                console.log('WebSocket connected');
+                updateStatus('Connected to server', 'connected');
+                startBtn.disabled = false;
+                reconnectAttempts = 0;
+            };
+            
+            socket.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleServerMessage(data);
+                } catch (error) {
+                    console.error('Error parsing server message:', error);
+                }
+            };
+            
+            socket.onclose = function(event) {
+                console.log('WebSocket disconnected');
+                updateStatus('Disconnected from server', 'disconnected');
+                startBtn.disabled = true;
+                stopBtn.disabled = true;
+                isRecording = false;
+                
+                // Attempt to reconnect
+                if (reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++;
+                    updateStatus(`Reconnecting... (${reconnectAttempts}/${maxReconnectAttempts})`, 'warning');
+                    setTimeout(connectWebSocket, 2000);
+                } else {
+                    updateStatus('❌ Connection failed. Please refresh the page.', 'disconnected');
+                }
+            };
+            
+            socket.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                updateStatus('Connection error', 'disconnected');
+            };
+        }
+        
+        function handleServerMessage(data) {
+            if (data.type === 'realtime') {
+                displayRealtimeText(data.text);
+            } else if (data.type === 'fullSentence') {
+                addFullSentence(data.text);
+            }
+        }
+        
+        function displayRealtimeText(realtimeText) {
+            const sentencesHtml = fullSentences.map((sentence, index) => 
+                `<span class="full-sentence">${sentence}</span>`
+            ).join(' ');
+            
+            const realtimeHtml = realtimeText ? 
+                `<span class="realtime-text">${realtimeText}</span>` : '';
+            
+            const combinedText = sentencesHtml + (sentencesHtml && realtimeHtml ? ' ' : '') + realtimeHtml;
+            
+            textDisplay.innerHTML = combinedText || '<div style="opacity: 0.6;">Listening... speak now</div>';
+        }
+        
+        function addFullSentence(sentence) {
+            if (sentence && sentence.trim()) {
+                fullSentences.push(sentence.trim());
+                displayRealtimeText('');
+            }
+        }
+        
+        function startRecording() {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                isRecording = true;
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                updateStatus('🎙️ Recording... speak now', 'connected');
+                statusDisplay.classList.add('listening');
+                textDisplay.innerHTML = '<div style="opacity: 0.6;">Listening... speak now</div>';
+            }
+        }
+        
+        function stopRecording() {
+            isRecording = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            updateStatus('Connected to server', 'connected');
+            statusDisplay.classList.remove('listening');
+        }
+        
+        function clearText() {
+            fullSentences = [];
+            textDisplay.innerHTML = '<div style="opacity: 0.6;">Text cleared. Ready for new recording...</div>';
+        }
+        
+        function updateStatus(message, type) {
+            statusText.textContent = message;
+            statusIndicator.className = `status-indicator status-${type}`;
+        }
+        
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden && isRecording) {
+                // Pause recording when tab is hidden
+                stopRecording();
+            }
+        });
+        
+        // Handle beforeunload
+        window.addEventListener('beforeunload', function() {
+            if (socket) {
+                socket.close();
+            }
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+            }
+        });
+        
+        // Start the application
+        init();
+    </script>
+</body>
+</html>
