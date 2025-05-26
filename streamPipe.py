@@ -16,6 +16,9 @@ stream = client.chat.completions.create(
     stream=True,
     extra_body={
     "top_k": 20,
+    "chat_template_kwargs": {
+        "enable_thinking": False
+    }
 },
 )
 
