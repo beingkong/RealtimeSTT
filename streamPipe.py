@@ -8,7 +8,8 @@ client = OpenAI(
 stream = client.chat.completions.create(
     model="Qwen/Qwen3-14B-AWQ",
     messages=[
-        {"role": "user", "content": "9.11>9.8?"},
+        # {"role": "system", "content": "Please do not include <think> or any similar tags in your response."},这句不起作用对该模型
+        {"role": "user", "content": "python版本号?/no_think"},#/no_think该标签有用
     ],
     max_tokens=32768,
     temperature=0.6,
